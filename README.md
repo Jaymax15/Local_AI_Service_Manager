@@ -53,8 +53,6 @@ This project was built by one person, and AI tools were used to help with coding
 
 Please do not take that as a bad thing. This is a one-man project, and I used the tools available to help make something useful for the community. The goal is not to hide that AI helped, but to be honest about it and hopefully invite others to improve the project with me.
 
-A big thank you to ChatGPT for helping during development.
-
 ## Contributing
 
 If you test this project, please feel free to leave feedback, report issues, suggest improvements, or contribute code.
