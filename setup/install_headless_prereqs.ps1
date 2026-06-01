@@ -33,10 +33,22 @@ Write-Step "Running Linux headless Docker installer inside WSL"
 Write-Host "Linux installer:"
 Write-Host "  $scriptUrl"
 
-# Avoid complex PowerShell/Bash quoting by passing URL through an environment variable.
-$env:AI_SM_HEADLESS_SH_URL = $scriptUrl
+$bashCommand = @"
+set -e
+url='$scriptUrl'
+echo "[HEADLESS] Downloading `$url"
 
-wsl.exe -- bash -lc 'set -e; url="$AI_SM_HEADLESS_SH_URL"; echo "[HEADLESS] Downloading $url"; if ! command -v curl >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y curl ca-certificates; fi; curl -fsSL "$url" -o /tmp/ai-sm-headless-install.sh; chmod +x /tmp/ai-sm-headless-install.sh; /tmp/ai-sm-headless-install.sh'
+if ! command -v curl >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y curl ca-certificates
+fi
+
+curl -fsSL "`$url" -o /tmp/ai-sm-headless-install.sh
+chmod +x /tmp/ai-sm-headless-install.sh
+/tmp/ai-sm-headless-install.sh
+"@
+
+wsl.exe -- bash -lc $bashCommand
 
 if ($LASTEXITCODE -ne 0) {
     throw "Headless Docker installer failed inside WSL."
