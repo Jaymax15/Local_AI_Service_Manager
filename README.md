@@ -33,10 +33,10 @@ dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux 
 winget install --id Python.Python.3.14 -e --scope machine --accept-package-agreements --accept-source-agreements
 ```
 
-**3. Install Docker Desktop**
+**3. Install Docker Headless**
 
 ```powershell
-winget install --id Docker.DockerDesktop -e --accept-package-agreements --accept-source-agreements
+iwr -useb https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main/setup/install_headless_prereqs.ps1 -OutFile "$env:TEMP\ai-sm-headless.ps1"; powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\ai-sm-headless.ps1"
 ```
 
 After setup, restart Windows, open Docker Desktop once, and complete any first-run setup it asks for.
@@ -50,7 +50,7 @@ Some antivirus tools may warn about PowerShell setup scripts because they instal
 Run in **PowerShell as Administrator**:
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main/setup/install_prereqs.ps1 -OutFile "$env:TEMP\ai-sm-setup.ps1"; powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\ai-sm-setup.ps1"
+iwr -useb https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main/setup/install_headless_prereqs.ps1 -OutFile "$env:TEMP\ai-sm-headless.ps1"; powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\ai-sm-headless.ps1"
 ```
 
 ## What it does
