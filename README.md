@@ -36,7 +36,7 @@ winget install --id Python.Python.3.14 -e --scope machine --accept-package-agree
 **3. Install Docker Headless**
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main/setup/install_headless_prereqs.ps1 -OutFile "$env:TEMP\ai-sm-headless.ps1"; powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\ai-sm-headless.ps1"
+$setup="$env:TEMP\ai-sm-headless-$PID.ps1"; iwr -useb "https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main/setup/install_headless_prereqs.ps1?cachebust=$PID" -OutFile $setup; powershell -NoProfile -ExecutionPolicy Bypass -File $setup
 ```
 
 After setup, restart Windows, open Docker Desktop once, and complete any first-run setup it asks for.
