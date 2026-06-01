@@ -100,10 +100,14 @@ echo "[HEADLESS] Docker Engine installed successfully."
 echo "[HEADLESS] Run 'wsl --shutdown' from PowerShell, then reopen WSL/manager."
 '@
 
-$temp = Join-Path $env:TEMP "ai-sm-headless-install.sh"
-[System.IO.File]::WriteAllText($temp, $bash.Replace("`r`n","`n"), [System.Text.UTF8Encoding]::new($false))
+# Windows PowerShell 5.1 does not support Bash-style "< file" redirection.
+# Send the Bash installer to WSL as base64 instead, so the one-command GitHub
+# installer works in both Windows PowerShell and newer PowerShell.
+$bashNormalized = $bash.Replace("`r`n","`n").Replace("`r","`n")
+$encoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($bashNormalized))
+$wslCommand = "printf '%s' '$encoded' | base64 -d > /tmp/ai-sm-headless-install.sh && chmod +x /tmp/ai-sm-headless-install.sh && /tmp/ai-sm-headless-install.sh"
 
-wsl.exe -d $defaultDistro -- bash -lc "cat > /tmp/ai-sm-headless-install.sh && chmod +x /tmp/ai-sm-headless-install.sh && /tmp/ai-sm-headless-install.sh" < $temp
+wsl.exe -d $defaultDistro -- bash -lc $wslCommand
 
 Write-Step "Finishing"
 Write-Host "Now run this once so WSL reloads Docker/group/systemd changes:" -ForegroundColor Yellow
