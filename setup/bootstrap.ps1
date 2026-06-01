@@ -1,11 +1,11 @@
 # AI Server Manager - Bootstrap Installer
-# This tiny script downloads and runs setup/install_prereqs.ps1 from the GitHub repo.
-# Recommended user command:
-#   $env:AI_SM_REPO_RAW_BASE="https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main"; irm "$env:AI_SM_REPO_RAW_BASE/setup/bootstrap.ps1" | iex
+# Downloads and runs setup/install_prereqs.ps1 from the GitHub repo.
+#
+# User command:
+#   $env:AI_SM_REPO_RAW_BASE="https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main"; irm "$env:AI_SM_REPO_RAW_BASE/setup/bootstrap.ps1" | iex
 
 $ErrorActionPreference = "Stop"
 
-# Fallback only. Prefer setting AI_SM_REPO_RAW_BASE in the one-line command.
 $DefaultRepoRawBase = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main"
 $RepoRawBase = $env:AI_SM_REPO_RAW_BASE
 if ([string]::IsNullOrWhiteSpace($RepoRawBase)) {
@@ -33,7 +33,7 @@ if ($RepoRawBase -like "*YOUR_GITHUB_USERNAME*" -or $RepoRawBase -like "*YOUR_RE
     Write-Host "ERROR[SETUP-001]: GitHub repo URL has not been configured." -ForegroundColor Red
     Write-Host ""
     Write-Host "Set AI_SM_REPO_RAW_BASE before running bootstrap.ps1, for example:" -ForegroundColor Yellow
-    Write-Host '$env:AI_SM_REPO_RAW_BASE="https://raw.githubusercontent.com/YOUR_NAME/YOUR_REPO/main"; irm "$env:AI_SM_REPO_RAW_BASE/setup/bootstrap.ps1" | iex' -ForegroundColor White
+    Write-Host '$env:AI_SM_REPO_RAW_BASE="https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main"; irm "$env:AI_SM_REPO_RAW_BASE/setup/bootstrap.ps1" | iex' -ForegroundColor White
     throw "Repository URL not configured."
 }
 
@@ -62,13 +62,11 @@ if (-not (Test-Path $InstallerPath)) {
     throw "Installer download failed."
 }
 
-if (-not (Test-IsAdmin)) {
-    Write-Host ""
-    Write-Host "Administrator permission is required." -ForegroundColor Yellow
-    Write-Host "A Windows UAC prompt should appear now. Click Yes to continue." -ForegroundColor Yellow
-    Write-Host ""
-
-    $encodedCommand = @"
+# IMPORTANT:
+# Do not call "& $InstallerPath" directly here.
+# Some systems block script files through ExecutionPolicy even though the bootstrap was allowed through irm | iex.
+# Always launch the installer in a new PowerShell process with -ExecutionPolicy Bypass.
+$runCommand = @"
 `$env:AI_SM_REPO_RAW_BASE = '$RepoRawBase'
 & '$InstallerPath'
 Write-Host ''
@@ -76,8 +74,14 @@ Write-Host 'Setup window can now be closed.' -ForegroundColor Green
 Read-Host 'Press Enter to close'
 "@
 
-    $bytes = [System.Text.Encoding]::Unicode.GetBytes($encodedCommand)
-    $encoded = [Convert]::ToBase64String($bytes)
+$bytes = [System.Text.Encoding]::Unicode.GetBytes($runCommand)
+$encoded = [Convert]::ToBase64String($bytes)
+
+if (-not (Test-IsAdmin)) {
+    Write-Host ""
+    Write-Host "Administrator permission is required." -ForegroundColor Yellow
+    Write-Host "A Windows UAC prompt should appear now. Click Yes to continue." -ForegroundColor Yellow
+    Write-Host ""
 
     Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList @(
         "-NoProfile",
@@ -87,4 +91,11 @@ Read-Host 'Press Enter to close'
     return
 }
 
-& $InstallerPath
+Write-Host ""
+Write-Host "Running installer with ExecutionPolicy Bypass..." -ForegroundColor Cyan
+
+Start-Process -FilePath "powershell.exe" -Wait -ArgumentList @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-EncodedCommand", $encoded
+)
