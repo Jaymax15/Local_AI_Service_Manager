@@ -8,22 +8,6 @@ function Write-Step($msg) {
     Write-Host "==> $msg" -ForegroundColor Cyan
 }
 
-function Convert-ToWslPath($windowsPath) {
-    $full = [System.IO.Path]::GetFullPath($windowsPath)
-
-    if ($full -match '^([A-Za-z]):\\(.*)$') {
-        $drive = $matches[1].ToLower()
-        $rest = $matches[2] -replace '\\', '/'
-        return "/mnt/$drive/$rest"
-    }
-
-    throw "Could not convert Windows path to WSL path: $windowsPath"
-}
-
-function Quote-Bash($text) {
-    return "'" + ($text.Replace("'", "'\''")) + "'"
-}
-
 Write-Host "============================================================"
 Write-Host " AI Server Manager - Headless Docker WSL Setup"
 Write-Host "============================================================"
@@ -44,6 +28,7 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($defaultCheck)) {
 Write-Host "Using WSL default distro: $defaultCheck" -ForegroundColor Green
 
 Write-Step "Downloading Linux headless Docker installer"
+
 $scriptUrl = "$repoRaw/setup/install_headless_prereqs.sh"
 $tempSh = Join-Path $env:TEMP "ai-sm-headless-$PID.sh"
 
@@ -56,11 +41,21 @@ if (!(Test-Path $tempSh)) {
     throw "Failed to download Linux installer script."
 }
 
-$wslTempSh = Convert-ToWslPath $tempSh
-$quotedWslTempSh = Quote-Bash $wslTempSh
-
 Write-Step "Running installer inside WSL"
-$cmd = "sed 's/\r$//' $quotedWslTempSh > /tmp/ai-sm-headless-install.sh && chmod +x /tmp/ai-sm-headless-install.sh && /tmp/ai-sm-headless-install.sh"
+
+# Convert Windows temp path to WSL path using WSL itself.
+$tempShEscaped = $tempSh.Replace("\", "\\")
+$wslTempSh = & wsl.exe -- bash -lc "wslpath -a '$tempShEscaped'"
+
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($wslTempSh)) {
+    throw "Failed to convert temp script path to WSL path."
+}
+
+$wslTempSh = $wslTempSh.Trim()
+
+# No sed, no PowerShell-hostile single-quote regex.
+# Bash reads the downloaded .sh file, strips CR if present, writes it to /tmp, then runs it.
+$cmd = "tr -d '\r' < ""$wslTempSh"" > /tmp/ai-sm-headless-install.sh; chmod +x /tmp/ai-sm-headless-install.sh; /tmp/ai-sm-headless-install.sh"
 
 wsl.exe -- bash -lc $cmd
 
