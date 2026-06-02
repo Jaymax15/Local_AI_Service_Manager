@@ -6,6 +6,28 @@ It is designed to make local AI tools easier to start, stop, monitor, and manage
 
 Created by **Jason Michael Allison**.
 
+## Preview
+
+### Main manager
+
+![AI Server Manager main window](components/images/main-manager.png)
+
+### Settings and update terminal
+
+![Settings window with update terminal](components/images/settings-terminal.png)
+
+### Services window
+
+![Services window](components/images/services-window.png)
+
+### Service manager
+
+![Service manager window](components/images/service-manager.png)
+
+### Model manager
+
+![Model manager window](components/images/model-manager.png)
+
 ## First-time setup
 
 AI Server Manager requires:
@@ -55,41 +77,63 @@ iwr -useb https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/ma
 
 ## What it does
 
-AI Server Manager helps control services such as:
+AI Server Manager helps control and monitor a local AI stack from one Windows desktop app. Current capabilities include:
 
-* **Ollama** for local LLM models
-* **XTTS2**, **Kokoro**, and **Piper** for text-to-speech
-* **SillyTavern** and **Open WebUI** for web/chat interfaces
-* GPU and CPU monitoring
-* Service start/stop controls
-* Basic settings, service priority, and GPU assignment options
+* **Ollama** management for local LLM models
+* **XTTS2**, **Kokoro**, and **Piper** management for text-to-speech services
+* **SillyTavern** and **Open WebUI** management for web/chat interfaces
+* Install and uninstall tools for supported services
+* One-click **START ALL** and **STOP ALL** controls
+* Service priority ordering so core backends can start before UI services
+* Live AI service status checks with local URLs and up/down state
+* GPU and CPU monitoring inside the manager
+* A **Service Manager** window for installing, uninstalling, and checking supported services
+* A **Model Manager** window for installing and removing Ollama models
+* A curated Ollama model list that can be updated from GitHub through the Settings update terminal
+* Sudo setup support for the required WSL-side service and install commands
+* Dark and light theme support
+* Portable folder-based layout so the project can be moved more easily between drives or systems
 
-The goal is to give users one central place to manage a local AI server setup.
+The goal is to give users one central place to install, start, stop, monitor, and maintain a local AI server setup.
+
+## Processor selection status
+
+Processor selection is currently still in development. The controls are visible in the Services window, but the deeper assignment logic is not finished yet.
+
+When complete, processor selection is intended to let users choose how supported services should run, such as **Auto**, **CPU**, or a specific available GPU. This should eventually make it easier to separate workloads, for example running LLM services on one GPU, TTS services on another GPU, or falling back to CPU-only mode on machines without a dedicated GPU.
+
+This feature is planned to support more flexible local AI setups over time, including systems with NVIDIA, AMD, Intel, single-GPU, multi-GPU, and CPU-only configurations where possible.
 
 ## Why this is useful
 
-Running local AI can be confusing, especially when several tools need to start in the right order. This manager helps by:
+Running local AI can be confusing, especially when several tools need to be installed, started, stopped, and checked in the right order. This manager helps by:
 
 * Starting selected services from one button
 * Stopping services cleanly
-* Showing whether services are running
+* Showing whether services are installed and running
 * Showing GPU and CPU usage
-* Helping manage installed AI services
+* Helping install and remove supported AI services
+* Helping install and remove Ollama models
+* Reducing the need to repeatedly type terminal commands
 * Making local AI setups more beginner-friendly
 
 ## Basic usage
 
 1. Open `ai_server_manager.py`.
-2. Use **Settings** to configure options such as theme, GPU assignment, and sudo access.
-3. Use **Services** to enable or disable installed services.
-4. Press **START ALL** to launch your selected services.
-5. Press **STOP ALL** to stop them and release resources.
+2. Use **Settings** to configure options such as theme, sudo access, and model-list updates.
+3. Use **Services** to enable or disable installed services, adjust priority, and open service/model management tools.
+4. Use **Manage Services** to install or uninstall supported services.
+5. Use **Manage Models** to install or remove Ollama models.
+6. Press **START ALL** to launch your selected services.
+7. Press **STOP ALL** to stop them and release resources.
 
 The manager is intended to be portable inside the project folder, so it can be moved between drives or computers more easily.
 
 ## Project status
 
-This project is still under active development. Some services, paths, and shutdown behavior may still need testing on different machines.
+This project is still under active development. Core service management, monitoring, and model management are working, but some features are still being improved and tested across different machines.
+
+Processor selection is one of the larger features still in development. More services, models, hardware options, and installer improvements are planned over time.
 
 Community feedback, bug reports, ideas, and improvements are welcome.
 
