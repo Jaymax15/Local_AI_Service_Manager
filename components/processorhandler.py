@@ -1,4 +1,4 @@
-# Version: 1.1
+# Version: 1.2
 """Processor discovery and service capability filtering for AI Server Manager.
 
 V81 experimental: fixes XTTS Docker GPU enforcement by requesting Docker GPU access
@@ -340,24 +340,19 @@ def ollama_processor_repair_script(manager) -> str:
     return f'''
 echo "[PROCESSOR] Ollama processor selection: {label}"
 sudo -n mkdir -p /etc/systemd/system/ollama.service.d >/dev/null 2>&1 || true
-existing_models=$(grep -E '^Environment="OLLAMA_MODELS=' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null | sed 's/^Environment="OLLAMA_MODELS=//; s/"$//' || true)
-[ -n "$existing_models" ] || existing_models="$OLLAMA_BASE/models"
-cat >/tmp/ai-manager-ollama-override.conf <<'EOF'
+current_models="$OLLAMA_BASE/models"
+old_models=$(grep -E '^Environment="OLLAMA_MODELS=' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null | sed 's/^Environment="OLLAMA_MODELS=//; s/"$//' || true)
+if [ -n "$old_models" ] && [ "$old_models" != "$current_models" ]; then
+  echo "[PROCESSOR] Repairing stale Ollama model folder: $old_models -> $current_models"
+fi
+cat >/tmp/ai-manager-ollama-override.conf <<EOF
 [Service]
 Environment="HOME=/usr/share/ollama"
-Environment="OLLAMA_MODELS=__AI_MANAGER_OLLAMA_MODELS__"
+Environment="OLLAMA_MODELS=$current_models"
 Environment="OLLAMA_KEEP_ALIVE=-1"
 Environment="OLLAMA_HOST=0.0.0.0:11434"
 {env_lines}
 EOF
-python3 - "$existing_models" <<'PYFIX'
-from pathlib import Path
-import sys
-p = Path('/tmp/ai-manager-ollama-override.conf')
-text = p.read_text()
-text = text.replace('__AI_MANAGER_OLLAMA_MODELS__', sys.argv[1])
-p.write_text(text)
-PYFIX
 if [ ! -f /etc/systemd/system/ollama.service.d/override.conf ] || ! cmp -s /tmp/ai-manager-ollama-override.conf /etc/systemd/system/ollama.service.d/override.conf; then
   echo "[PROCESSOR] Applying Ollama processor/systemd override."
   sudo -n install -m 0644 /tmp/ai-manager-ollama-override.conf /etc/systemd/system/ollama.service.d/override.conf >/dev/null 2>&1 || true
