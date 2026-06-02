@@ -278,7 +278,7 @@ npm run start
 class AIManager:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Server Manager V74")
+        self.root.title("AI Server Manager V77")
         self.fixed_width = 1460
         self.fixed_height = 970
         self._enforcing_fixed_size = False
