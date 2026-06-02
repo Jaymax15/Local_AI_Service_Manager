@@ -12,10 +12,6 @@ Created by **Jason Michael Allison**.
 
 ![AI Server Manager main window](components/images/main-manager.png)
 
-### Settings and update terminal
-
-![Settings window with update terminal](components/images/settings-terminal.png)
-
 ### Services window
 
 ![Services window](components/images/services-window.png)
