@@ -1,4 +1,4 @@
-# Version: 1.2
+# Version: 1.3
 """Ollama model manager and curated model catalog.
 
 V75 keeps the model catalog into components/models.txt so GitHub can update the
@@ -38,15 +38,18 @@ def _to_wsl_path(path):
 def _ollama_portable_repair_prefix():
     """Return a shell prefix that pins Ollama models to this manager folder.
 
-    The Model Manager can start Ollama directly without going through Start All.
-    This keeps model downloads beside the current ai_server_manager.py/components
-    folder instead of an old drive letter left in systemd from a previous copy.
+    V86 makes this stricter than the first portable-path repair.  Writing the
+    systemd override is not enough if the Ollama service is already running
+    with an old OLLAMA_MODELS value.  Before listing, pulling, or removing
+    models, verify the live Ollama process environment and restart Ollama when
+    it is not using the current manager folder.
     """
     ai_dir = _to_wsl_path(Path(__file__).resolve().parent.parent).rstrip('/')
     base = f"{ai_dir}/ollama"
     models = f"{base}/models"
     return (
         f"OLLAMA_BASE={base!r}; OLLAMA_MODEL_DIR={models!r}; "
+        "mkdir -p \"$OLLAMA_MODEL_DIR\" >/dev/null 2>&1 || true; "
         "if id ollama >/dev/null 2>&1; then "
         "sudo -n mkdir -p /usr/share/ollama /var/lib/ollama \"$OLLAMA_MODEL_DIR\" >/dev/null 2>&1 || true; "
         "sudo -n chown -R ollama:ollama /usr/share/ollama /var/lib/ollama \"$OLLAMA_BASE\" >/dev/null 2>&1 || true; "
@@ -62,7 +65,22 @@ def _ollama_portable_repair_prefix():
         "sudo -n install -m 0644 /tmp/ai-manager-models-ollama-override.conf /etc/systemd/system/ollama.service.d/override.conf >/dev/null 2>&1 || true; "
         "rm -f /tmp/ai-manager-models-ollama-override.conf; "
         "sudo -n systemctl daemon-reload >/dev/null 2>&1 || true; "
+        "needs_restart=0; "
+        "pid=$(pgrep -x ollama | head -1 || true); "
+        "if [ -n \"$pid\" ]; then "
+        "live_env=$(sudo -n sh -c \"tr '\\\\0' '\\\\n' < /proc/$pid/environ 2>/dev/null\" || true); "
+        "printf '%s\n' \"$live_env\" | grep -F \"OLLAMA_MODELS=$OLLAMA_MODEL_DIR\" >/dev/null 2>&1 || needs_restart=1; "
+        "else needs_restart=1; fi; "
+        "if [ \"$needs_restart\" = \"1\" ]; then "
+        "sudo -n systemctl stop ollama >/dev/null 2>&1 || true; "
         "sudo -n systemctl start ollama >/dev/null 2>&1 || true; "
+        "fi; "
+        "for i in $(seq 1 30); do curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break; sleep 1; done; "
+        "pid=$(pgrep -x ollama | head -1 || true); "
+        "if [ -n \"$pid\" ]; then "
+        "live_env=$(sudo -n sh -c \"tr '\\\\0' '\\\\n' < /proc/$pid/environ 2>/dev/null\" || true); "
+        "printf '%s\n' \"$live_env\" | grep -F \"OLLAMA_MODELS=$OLLAMA_MODEL_DIR\" >/dev/null 2>&1 || { echo 'ERROR[MODELS-PATH-001]: Ollama is not using portable model folder.'; exit 86; }; "
+        "fi; "
     )
 
 DEFAULT_MODELS_TEXT = """# Version: 1.1
@@ -574,10 +592,16 @@ def open_models_window(manager):
             cmd = _ollama_portable_repair_prefix() + f"ollama pull {name}"
             rc, out = _run_model_command(manager, cmd, timeout=3600, on_line=on_line)
             if rc == 0:
-                manager.write(f"[MODELS] Installed model: {name}", "good")
-                manager.safe_ui(lambda: status_var.set(f"Installed {name}. Refreshing model list..."))
-                time.sleep(0.5)
-                load_installed_models()
+                verify_cmd = _ollama_portable_repair_prefix() + f"ollama list 2>&1 | grep -F -- {name!r} >/dev/null"
+                verify_rc, verify_out = _run_model_command(manager, verify_cmd, timeout=40)
+                if verify_rc == 0:
+                    manager.write(f"[MODELS] Installed model: {name}", "good")
+                    manager.safe_ui(lambda: status_var.set(f"Installed {name}. Refreshing model list..."))
+                    time.sleep(0.5)
+                    load_installed_models()
+                else:
+                    manager.write(f"[MODELS] ERROR: Pull completed, but Ollama did not report model in portable model folder: {name}. {verify_out}", "error")
+                    manager.safe_ui(lambda: status_var.set(f"Install verification failed for {name}. Check terminal log."))
             else:
                 manager.write(f"[MODELS] ERROR: Model install failed for {name}: {out}", "error")
                 manager.safe_ui(lambda: status_var.set(f"Install failed for {name}. Check terminal log."))
