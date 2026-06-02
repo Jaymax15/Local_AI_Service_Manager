@@ -1,4 +1,4 @@
-# Version: 1.1
+# Version: 1.2
 """Ollama model manager and curated model catalog.
 
 V75 keeps the model catalog into components/models.txt so GitHub can update the
@@ -22,6 +22,48 @@ from components import uihelpers
 MODEL_LIST_PATH = Path(__file__).with_name("models.txt")
 MODEL_LIST_URL = "https://raw.githubusercontent.com/Jaymax15/Local_AI_Service_Manager/main/components/models.txt"
 MODEL_CATEGORIES = ["Assistant", "Roleplay", "Vision"]
+
+def _to_wsl_path(path):
+    """Convert the manager project root to a WSL path so Ollama models stay portable."""
+    raw = str(path).strip().replace('\\', '/')
+    if len(raw) >= 3 and raw[1] == ':' and raw[2] == '/':
+        return f"/mnt/{raw[0].lower()}{raw[2:]}"
+    marker = '/mnt/'
+    idx = raw.lower().find(marker)
+    if idx >= 0:
+        return raw[idx:]
+    return raw
+
+
+def _ollama_portable_repair_prefix():
+    """Return a shell prefix that pins Ollama models to this manager folder.
+
+    The Model Manager can start Ollama directly without going through Start All.
+    This keeps model downloads beside the current ai_server_manager.py/components
+    folder instead of an old drive letter left in systemd from a previous copy.
+    """
+    ai_dir = _to_wsl_path(Path(__file__).resolve().parent.parent).rstrip('/')
+    base = f"{ai_dir}/ollama"
+    models = f"{base}/models"
+    return (
+        f"OLLAMA_BASE={base!r}; OLLAMA_MODEL_DIR={models!r}; "
+        "if id ollama >/dev/null 2>&1; then "
+        "sudo -n mkdir -p /usr/share/ollama /var/lib/ollama \"$OLLAMA_MODEL_DIR\" >/dev/null 2>&1 || true; "
+        "sudo -n chown -R ollama:ollama /usr/share/ollama /var/lib/ollama \"$OLLAMA_BASE\" >/dev/null 2>&1 || true; "
+        "fi; "
+        "sudo -n mkdir -p /etc/systemd/system/ollama.service.d >/dev/null 2>&1 || true; "
+        "cat >/tmp/ai-manager-models-ollama-override.conf <<EOF\n"
+        "[Service]\n"
+        "Environment=\"HOME=/usr/share/ollama\"\n"
+        "Environment=\"OLLAMA_MODELS=$OLLAMA_MODEL_DIR\"\n"
+        "Environment=\"OLLAMA_KEEP_ALIVE=-1\"\n"
+        "Environment=\"OLLAMA_HOST=0.0.0.0:11434\"\n"
+        "EOF\n"
+        "sudo -n install -m 0644 /tmp/ai-manager-models-ollama-override.conf /etc/systemd/system/ollama.service.d/override.conf >/dev/null 2>&1 || true; "
+        "rm -f /tmp/ai-manager-models-ollama-override.conf; "
+        "sudo -n systemctl daemon-reload >/dev/null 2>&1 || true; "
+        "sudo -n systemctl start ollama >/dev/null 2>&1 || true; "
+    )
 
 DEFAULT_MODELS_TEXT = """# Version: 1.1
 # AI Server Manager model list
@@ -504,7 +546,7 @@ def open_models_window(manager):
     def load_installed_models():
         status_var.set("Checking installed models...")
         def worker():
-            cmd = "sudo -n systemctl start ollama >/dev/null 2>&1 || true; ollama list 2>&1"
+            cmd = _ollama_portable_repair_prefix() + "ollama list 2>&1"
             rc, out = _run_model_command(manager, cmd, timeout=20)
             models = _parse_ollama_list(out) if rc == 0 else []
             def apply():
@@ -529,7 +571,7 @@ def open_models_window(manager):
                 manager.safe_ui(lambda t=text: status_var.set(f"Installing {name}: {t[:90]}"))
         def worker():
             manager.write(f"[MODELS] Installing Ollama model: {name}", "system")
-            cmd = f"sudo -n systemctl start ollama >/dev/null 2>&1 || true; ollama pull {name}"
+            cmd = _ollama_portable_repair_prefix() + f"ollama pull {name}"
             rc, out = _run_model_command(manager, cmd, timeout=3600, on_line=on_line)
             if rc == 0:
                 manager.write(f"[MODELS] Installed model: {name}", "good")
@@ -549,7 +591,7 @@ def open_models_window(manager):
         status_var.set(f"Removing {safe}...")
         def worker():
             manager.write(f"[MODELS] Removing Ollama model: {safe}", "system")
-            rc, out = _run_model_command(manager, f"ollama rm {safe} 2>&1", timeout=120)
+            rc, out = _run_model_command(manager, _ollama_portable_repair_prefix() + f"ollama rm {safe} 2>&1", timeout=120)
             if rc == 0:
                 manager.write(f"[MODELS] Removed model: {safe}", "good")
                 manager.safe_ui(lambda: status_var.set(f"Removed {safe}. Refreshing model list..."))
