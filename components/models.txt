@@ -1,4 +1,5 @@
 # AI Server Manager model list
+# Version: v1.1
 # Format: category|ollama_name|display_label|size_or_note
 # Categories currently used by the UI: Assistant, Roleplay, Vision
 # Keep this file plain text so it can be updated from GitHub without changing models.py.
