@@ -1,3 +1,4 @@
+# Version: 1.1
 import subprocess
 import threading
 import tkinter as tk
@@ -13,6 +14,7 @@ from components import services as services_window
 from components import components as service_components
 from components import errorhandler
 from components import uihelpers
+from components import processorhandler
 import re
 import traceback
 import shlex
@@ -278,7 +280,7 @@ npm run start
 class AIManager:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Server Manager V77")
+        self.root.title("AI Server Manager V84")
         self.fixed_width = 1460
         self.fixed_height = 970
         self._enforcing_fixed_size = False
@@ -319,6 +321,7 @@ class AIManager:
         self.healthy_since = {key: None for key in service_components.SERVICE_HANDLERS}
 
         self.last_service_snapshot = ""
+        self._suppress_terminal_output = False
         self.last_gpu_snapshot = ""
         self.last_cpu_snapshot = ""
         self.overlay = None
@@ -752,6 +755,8 @@ class AIManager:
         self.root.after(0, fn)
 
     def write(self, text, style=None):
+        if getattr(self, "_suppress_terminal_output", False):
+            return
         text = errorhandler.clean_ansi(str(text))
         text = errorhandler.summarize(text)
         if not text:
@@ -1191,6 +1196,7 @@ exit $rc
             self.set_status("Status: WSL error", "#ff4444")
             return
 
+        self.silent_stop_disabled_services()
         self.stop_stale_before_start()
 
         self.service_priorities = settings_window.get_service_priorities()
@@ -1201,6 +1207,7 @@ exit $rc
         ordered = service_components.start_order(self.service_enabled, self.service_priorities)
         self.write(f"[DEBUG] AI root candidates: {', '.join(getattr(service_components, 'AI_DIR_CANDIDATES', [service_components.AI_DIR]))}", "system")
         self.write(f"[DEBUG] Enabled launch order: {', '.join(ordered) if ordered else 'none'}", "system")
+        processorhandler.log_startup_summary(self, ordered)
         current_priority = None
 
         for key in ordered:
@@ -1270,6 +1277,46 @@ exit $rc
             time.sleep(check_delay)
         self.write(f"[{display}] Startup check timed out. Continuing launch queue with warning.", "warn")
         return False
+
+    def silent_stop_disabled_services(self):
+        """Silently stop installed services that are not enabled during manager boot.
+
+        Docker compose services can auto-start when Docker/WSL starts if their compose
+        file still has an autostart policy. The user terminal should stay clean here;
+        this is just startup housekeeping before the UI becomes interactive.
+        """
+        previous = getattr(self, "_suppress_terminal_output", False)
+        self._suppress_terminal_output = True
+        try:
+            self.service_enabled = settings_window.get_service_enabled()
+            self.service_priorities = settings_window.get_service_priorities()
+            states = {}
+            try:
+                states = self.get_service_states()
+            except Exception:
+                states = {}
+            for key in service_components.stop_order(self.service_enabled, include_disabled=True, priorities=self.service_priorities):
+                if self.service_enabled.get(key, False):
+                    continue
+                handler = service_components.SERVICE_HANDLERS.get(key, {})
+                if not handler or not self.is_service_installed(key):
+                    continue
+                try:
+                    is_up = bool(states.get(key, False)) or bool(handler.get("running", lambda m: False)(self))
+                except Exception:
+                    is_up = False
+                if not is_up:
+                    continue
+                try:
+                    if "force_stop" in handler:
+                        handler["force_stop"](self)
+                    elif "stop" in handler:
+                        handler["stop"](self, force=True)
+                    self._mark_service_state(key, False)
+                except Exception:
+                    pass
+        finally:
+            self._suppress_terminal_output = previous
 
     def stop_stale_before_start(self):
         self.write("\n========== CHECKING SELECTED SERVICES BEFORE START ==========")
@@ -1469,8 +1516,9 @@ exit $rc
 
     def initial_cleanup(self):
         self.refresh_installed_services()
-        self.write("Manager opened. Cleaning stale AI services...")
-        self.stop_stale_before_start()
+        # Quiet startup hygiene: close services that are installed/running but not enabled.
+        # This catches Docker services with restart policies without filling the user terminal.
+        self.silent_stop_disabled_services()
         self.set_status("Status: stopped", "#dddddd")
 
     # =====================================================
