@@ -1,4 +1,4 @@
-r"""Installer window and service install catalog for AI Server Manager V74 Headless Docker.
+r"""Installer window and service install catalog for AI Server Manager V77 Headless Docker.
 
 V52 installs/uses headless Docker Engine inside WSL instead of Docker Desktop integration.
 """
@@ -275,8 +275,7 @@ SILLY_COMPOSE = """services:
     image: ghcr.io/sillytavern/sillytavern:latest
     container_name: sillytavern
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    network_mode: host
     environment:
       - NODE_ENV=production
     volumes:
@@ -621,6 +620,7 @@ cat >/tmp/ai-manager-ollama-override.conf <<EOF
 Environment="HOME=/usr/share/ollama"
 Environment="OLLAMA_MODELS=$OLLAMA_MODEL_DIR"
 Environment="OLLAMA_KEEP_ALIVE=-1"
+Environment="OLLAMA_HOST=0.0.0.0:11434"
 EOF
 sudo -n install -m 0644 /tmp/ai-manager-ollama-override.conf /etc/systemd/system/ollama.service.d/override.conf
 rm -f /tmp/ai-manager-ollama-override.conf
