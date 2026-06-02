@@ -1,0 +1,49 @@
+# AI Server Manager model list
+# Version: v1.1
+# Format: category|ollama_name|display_label|size_or_note
+# Categories currently used by the UI: Assistant, Roleplay, Vision
+# Keep this file plain text so it can be updated from GitHub without changing models.py.
+
+[Assistant]
+llama3.2:1b|Llama 3.2 1B - tiny/fast|1B
+llama3.2:3b|Llama 3.2 3B - small|3B
+llama3.1:8b|Llama 3.1 8B - balanced|8B
+llama3.3:70b|Llama 3.3 70B - large/high quality|70B
+qwen2.5:3b|Qwen2.5 3B - small assistant/coding|3B
+qwen2.5:7b|Qwen2.5 7B - balanced assistant/coding|7B
+qwen2.5:14b|Qwen2.5 14B - larger assistant/coding|14B
+mistral:7b|Mistral 7B - balanced assistant|7B
+gemma2:2b|Gemma 2 2B - tiny assistant|2B
+gemma2:9b|Gemma 2 9B - balanced assistant|9B
+gemma3:4b|Gemma 3 4B - newer small assistant|4B
+gemma3:12b|Gemma 3 12B - newer balanced assistant|12B
+phi3:mini|Phi-3 Mini - tiny assistant|mini
+phi4:latest|Phi-4 - compact reasoning assistant|latest
+deepseek-r1:1.5b|DeepSeek R1 1.5B - tiny reasoning|1.5B
+deepseek-r1:7b|DeepSeek R1 7B - balanced reasoning|7B
+deepseek-r1:14b|DeepSeek R1 14B - stronger reasoning|14B
+codellama:7b|CodeLlama 7B - coding|7B
+qwen2.5-coder:1.5b|Qwen2.5 Coder 1.5B - tiny coding|1.5B
+qwen2.5-coder:7b|Qwen2.5 Coder 7B - coding|7B
+qwen2.5-coder:14b|Qwen2.5 Coder 14B - larger coding|14B
+starcoder2:3b|StarCoder2 3B - small coding|3B
+starcoder2:7b|StarCoder2 7B - balanced coding|7B
+
+[Roleplay]
+dolphin-mistral:7b|Dolphin Mistral 7B - chat/roleplay|7B
+dolphin-llama3:8b|Dolphin Llama 3 8B - chat/roleplay|8B
+neural-chat:7b|Neural Chat 7B - chat/roleplay|7B
+openchat:7b|OpenChat 7B - chat/roleplay|7B
+nous-hermes2:10.7b|Nous Hermes 2 10.7B - writing/roleplay|10.7B
+wizard-vicuna-uncensored:7b|Wizard Vicuna 7B - chat/roleplay|7B
+llama2-uncensored:7b|Llama 2 Uncensored 7B - roleplay/chat|7B
+mistral-nemo:12b|Mistral Nemo 12B - writing/chat|12B
+
+[Vision]
+llava:7b|LLaVA 7B - image understanding|7B
+llava:13b|LLaVA 13B - stronger image understanding|13B
+llava:34b|LLaVA 34B - large image understanding|34B
+llava-llama3:8b|LLaVA Llama 3 8B - image chat|8B
+bakllava:7b|BakLLaVA 7B - image chat|7B
+moondream:latest|Moondream - small vision model|latest
+minicpm-v:8b|MiniCPM-V 8B - compact vision model|8B
