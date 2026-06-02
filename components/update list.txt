@@ -1,0 +1,21 @@
+# Version: 1.1
+# AI Server Manager update list
+# Format: relative_path|version|mode|description
+# mode: update = auto-update this file; local = list only, do not overwrite user/machine settings
+ai_server_manager.py|1.1|update|Main desktop manager
+README.md|1.1|update|GitHub README
+components/__init__.py|1.1|update|Components package marker
+components/components.py|1.1|update|Service registry and start/stop logic
+components/errorhandler.py|1.1|update|Terminal/error cleanup helpers
+components/installer.py|1.1|update|Service installer and uninstaller UI
+components/models.py|1.1|update|Model manager UI and model-list helpers
+components/models.txt|1.1|update|Curated Ollama model catalog
+components/processorhandler.py|1.1|update|Processor detection and CPU/GPU routing helpers
+components/services.py|1.1|update|Services menu UI
+components/settings.py|1.1|update|Settings menu UI and updater terminal
+components/settings.txt|1.1|local|User settings; preserved by updater
+components/sudo.py|1.1|update|Sudo setup helper
+components/uihelpers.py|1.1|update|Tkinter UI helper widgets
+components/update list.txt|1.1|update|Update manifest
+components/updateutil.py|1.1|update|GitHub updater logic
+setup/install_headless_prereqs.ps1|1.1|update|PowerShell headless prerequisite installer

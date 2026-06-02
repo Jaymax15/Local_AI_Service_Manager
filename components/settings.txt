@@ -1,0 +1,35 @@
+{
+  "file_version": "1.1",
+  "theme": "dark",
+  "services": {
+    "ollama": true,
+    "xtts": true,
+    "kokoro": false,
+    "piper": false,
+    "silly": true,
+    "openwebui": false
+  },
+  "service_priorities": {
+    "ollama": 0,
+    "xtts": 2,
+    "kokoro": 2,
+    "piper": 2,
+    "silly": 4,
+    "openwebui": 4
+  },
+  "gpu": {
+    "llm_gpu": "",
+    "tts_gpu": ""
+  },
+  "behavior": {
+    "stop_on_close": true
+  },
+  "service_processors": {
+    "ollama": "auto",
+    "xtts": "auto",
+    "kokoro": "auto",
+    "piper": "auto",
+    "silly": "auto",
+    "openwebui": "auto"
+  }
+}
