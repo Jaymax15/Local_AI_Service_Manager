@@ -13,7 +13,7 @@ AI Server Manager requires:
 * Windows with WSL enabled
 * Ubuntu for WSL
 * Python
-* Docker Desktop
+* Docker Headless
 
 Open **PowerShell as Administrator** before running setup commands.
 
