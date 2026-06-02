@@ -1,4 +1,4 @@
-# Version: 1.1
+# Version: 1.2
 """Service registry and start/stop layer for AI Server Manager V84.
 
 The manager reads this registry dynamically. For future community services,
@@ -324,14 +324,17 @@ fi
 # interface so containers can use http://host.docker.internal:11434.
 needs_ollama_restart=0
 sudo -n mkdir -p /etc/systemd/system/ollama.service.d >/dev/null 2>&1 || true
-if [ ! -f /etc/systemd/system/ollama.service.d/override.conf ] || ! grep -q 'OLLAMA_HOST=0.0.0.0:11434' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null; then
-  echo "[OLLAMA] DEBUG: repairing Ollama Docker access override for SillyTavern/Open WebUI."
-  existing_models=$(grep -E '^Environment="OLLAMA_MODELS=' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null | sed 's/^Environment="OLLAMA_MODELS=//; s/"$//' || true)
-  [ -n "$existing_models" ] || existing_models="$OLLAMA_BASE/models"
+current_models="$OLLAMA_BASE/models"
+old_models=$(grep -E '^Environment="OLLAMA_MODELS=' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null | sed 's/^Environment="OLLAMA_MODELS=//; s/"$//' || true)
+if [ ! -f /etc/systemd/system/ollama.service.d/override.conf ] || ! grep -q 'OLLAMA_HOST=0.0.0.0:11434' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null || [ "$old_models" != "$current_models" ]; then
+  echo "[OLLAMA] DEBUG: repairing Ollama service override/model folder."
+  if [ -n "$old_models" ] && [ "$old_models" != "$current_models" ]; then
+    echo "[OLLAMA] DEBUG: repairing stale Ollama model folder: $old_models -> $current_models"
+  fi
   cat >/tmp/ai-manager-ollama-override.conf <<EOF
 [Service]
 Environment="HOME=/usr/share/ollama"
-Environment="OLLAMA_MODELS=$existing_models"
+Environment="OLLAMA_MODELS=$current_models"
 Environment="OLLAMA_KEEP_ALIVE=-1"
 Environment="OLLAMA_HOST=0.0.0.0:11434"
 EOF
