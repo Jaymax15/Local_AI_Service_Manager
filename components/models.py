@@ -1,6 +1,6 @@
 """Ollama model manager and curated model catalog.
 
-V74 keeps the model catalog into components/models.txt so GitHub can update the
+V75 keeps the model catalog into components/models.txt so GitHub can update the
 available model list without changing this Python UI file. The Python side owns
 searching, filtering, installing, removing, and updating that text catalog.
 """
