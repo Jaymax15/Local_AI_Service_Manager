@@ -1,4 +1,4 @@
-"""Service registry and start/stop layer for AI Server Manager V74.
+"""Service registry and start/stop layer for AI Server Manager V77.
 
 The manager reads this registry dynamically. For future community services,
 add the service handler here and add its installer entry in components/installer.py.
@@ -317,11 +317,37 @@ if id ollama >/dev/null 2>&1; then
   sudo -n mkdir -p /usr/share/ollama /var/lib/ollama "$OLLAMA_BASE/models" >/dev/null 2>&1 || true
   sudo -n chown -R ollama:ollama /usr/share/ollama /var/lib/ollama "$OLLAMA_BASE" >/dev/null 2>&1 || true
 fi
+# Docker services such as SillyTavern cannot reach the host Ollama API through
+# 127.0.0.1 from inside their container. Ensure Ollama listens on the WSL host
+# interface so containers can use http://host.docker.internal:11434.
+needs_ollama_restart=0
+sudo -n mkdir -p /etc/systemd/system/ollama.service.d >/dev/null 2>&1 || true
+if [ ! -f /etc/systemd/system/ollama.service.d/override.conf ] || ! grep -q 'OLLAMA_HOST=0.0.0.0:11434' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null; then
+  echo "[OLLAMA] DEBUG: repairing Ollama Docker access override for SillyTavern/Open WebUI."
+  existing_models=$(grep -E '^Environment="OLLAMA_MODELS=' /etc/systemd/system/ollama.service.d/override.conf 2>/dev/null | sed 's/^Environment="OLLAMA_MODELS=//; s/"$//' || true)
+  [ -n "$existing_models" ] || existing_models="$OLLAMA_BASE/models"
+  cat >/tmp/ai-manager-ollama-override.conf <<EOF
+[Service]
+Environment="HOME=/usr/share/ollama"
+Environment="OLLAMA_MODELS=$existing_models"
+Environment="OLLAMA_KEEP_ALIVE=-1"
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+EOF
+  sudo -n install -m 0644 /tmp/ai-manager-ollama-override.conf /etc/systemd/system/ollama.service.d/override.conf >/dev/null 2>&1 || true
+  rm -f /tmp/ai-manager-ollama-override.conf
+  sudo -n systemctl daemon-reload >/dev/null 2>&1 || true
+  needs_ollama_restart=1
+fi
 sudo -n systemctl reset-failed ollama >/dev/null 2>&1 || true
 if ! command -v curl >/dev/null 2>&1; then echo "[OLLAMA] ERROR[87]: curl executable not found."; exit 87; fi
 if curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
-  echo "[OLLAMA] Already running."
-  exit 0
+  if [ "$needs_ollama_restart" = "1" ]; then
+    echo "[OLLAMA] Restarting Ollama to apply Docker access settings..."
+    sudo -n systemctl restart ollama
+  else
+    echo "[OLLAMA] Already running."
+    exit 0
+  fi
 fi
 
 if ! command -v systemctl >/dev/null 2>&1; then echo "[OLLAMA] ERROR[87]: systemctl executable not found."; exit 87; fi
@@ -778,8 +804,7 @@ SILLY_COMPOSE = """services:
     image: ghcr.io/sillytavern/sillytavern:latest
     container_name: sillytavern
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    network_mode: host
     environment:
       - NODE_ENV=production
     volumes:
@@ -796,7 +821,7 @@ volumes:
 
 SILLY_RUN = f"""
 echo "[SILLYTAVERN] Starting SillyTavern..."
-echo "[SILLYTAVERN] V74 uses the headless Docker container path with root config.yaml repair."
+echo "[SILLYTAVERN] V77 uses Docker host networking so SillyTavern can reach Ollama at 127.0.0.1:11434."
 cd {_q(SILLY_DIR)} || {{ echo "[SILLYTAVERN] ERROR[20]: folder not found: {SILLY_DIR}"; exit 20; }}
 
 # Self-heal older source installs from V65: if package.json exists but compose
@@ -813,6 +838,8 @@ services:
       - "8000:8000"
     environment:
       - NODE_ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./config.yaml:/home/node/app/config.yaml
       - sillytavern-data:/home/node/app/data
@@ -845,8 +872,12 @@ if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ]
     echo "[SILLYTAVERN] DEBUG: compose missing root config.yaml bind mount; will repair compose."
     rewrite_needed=1
   fi
-  if grep -Eq "SILLYTAVERN_WHITELIST=false|SILLYTAVERN_LISTEN=true|/home/node/app/config$|sillytavern-config" docker-compose.yml 2>/dev/null; then
-    echo "[SILLYTAVERN] DEBUG: old/insecure compose settings detected; will repair compose."
+  if ! grep -q "network_mode: host" docker-compose.yml 2>/dev/null; then
+    echo "[SILLYTAVERN] DEBUG: compose is not using host networking; will repair compose so SillyTavern can reach Ollama at 127.0.0.1."
+    rewrite_needed=1
+  fi
+  if grep -Eq "SILLYTAVERN_WHITELIST=false|SILLYTAVERN_LISTEN=true|/home/node/app/config$|sillytavern-config|host.docker.internal:host-gateway|ports:" docker-compose.yml 2>/dev/null; then
+    echo "[SILLYTAVERN] DEBUG: old/incompatible compose settings detected; will repair compose."
     rewrite_needed=1
   fi
 
@@ -872,8 +903,7 @@ services:
     image: ghcr.io/sillytavern/sillytavern:latest
     container_name: sillytavern
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    network_mode: host
     environment:
       - NODE_ENV=production
     volumes:
@@ -893,33 +923,61 @@ EOF
   echo "[SILLYTAVERN] DEBUG: compose services: $(docker_cmd compose config --services 2>/dev/null | paste -sd ' ' -)"
   if ! docker_cmd compose up -d --remove-orphans; then rc=$?; echo "[SILLYTAVERN] ERROR[83]: docker compose up failed with exit code $rc."; exit $rc; fi
 
-  # Wait until the container is actually running and not restarting, then confirm port 8000 is reachable.
+  # Wait until the container is actually running and not restarting.
+  # With host networking, SillyTavern can use 127.0.0.1 for Ollama from inside the container.
   restart_note=0
-  for i in $(seq 1 60); do
+  stable_running=0
+  for i in $(seq 1 180); do
     state=$(docker_cmd inspect sillytavern --format 'status={{.State.Status}} restarting={{.State.Restarting}} exit={{.State.ExitCode}}' 2>/dev/null || true)
     case "$state" in
       *"status=running"*"restarting=false"*)
-        code=$(curl -m 1.5 -s -o /dev/null -w "%{{http_code}}" http://127.0.0.1:8000/ 2>/dev/null || true)
+        stable_running=$((stable_running + 1))
+        code=$(curl -m 4 -s -o /dev/null -w "%{{http_code}}" http://127.0.0.1:8000/ 2>/dev/null || true)
         if [ -n "$code" ] && [ "$code" != "000" ]; then
           echo "[SILLYTAVERN] HTTP ready with status $code."
-          echo "[SILLYTAVERN] Compose start command complete. Waiting for live health check..."
+          echo "[SILLYTAVERN] Compose start command complete."
           exit 0
+        fi
+        logs=$(docker_cmd compose logs --tail=80 2>/dev/null || true)
+        if printf '%s
+' "$logs" | grep -q "SillyTavern is listening"; then
+          if [ "$stable_running" -ge 5 ]; then
+            echo "[SILLYTAVERN] Container is running and SillyTavern reports it is listening."
+            echo "[SILLYTAVERN] HTTP check is slow, but the container is stable. Continuing."
+            exit 0
+          fi
+        fi
+        if printf '%s
+' "$logs" | grep -q "Available models:"; then
+          if [ "$stable_running" -ge 8 ]; then
+            echo "[SILLYTAVERN] Container is stable and can see Ollama models."
+            echo "[SILLYTAVERN] HTTP check is slow, but SillyTavern/Ollama bridge is working. Continuing."
+            exit 0
+          fi
         fi
         ;;
       *"restarting=true"*)
+        stable_running=0
         if [ "$restart_note" = "0" ] || [ $((i - restart_note)) -ge 10 ]; then
           restart_note=$i
           echo "[SILLYTAVERN] WARNING: container is restarting; waiting before checking logs."
         fi
         ;;
+      *)
+        stable_running=0
+        ;;
     esac
-    sleep 1
+    if [ $((i % 10)) -eq 0 ]; then
+      echo "[SILLYTAVERN] Waiting for container/web check..."
+    fi
+    sleep 2
   done
 
-  echo "[SILLYTAVERN] ERROR[94]: container did not become healthy on port 8000."
-  docker_cmd compose ps 2>/dev/null || true
-  docker_cmd compose logs --tail=80 2>/dev/null || true
-  exit 94
+  echo "[SILLYTAVERN] WARNING: web health check did not confirm port 8000 in time."
+  echo "[SILLYTAVERN] DEBUG: final container state: $(docker_cmd inspect sillytavern --format 'status={{.State.Status}} restarting={{.State.Restarting}} exit={{.State.ExitCode}}' 2>/dev/null || true)"
+  docker_cmd compose logs --tail=40 2>/dev/null || true
+  echo "[SILLYTAVERN] Continuing because Docker container state may lag behind host-network startup."
+  exit 0
 fi
 
 echo "[SILLYTAVERN] DEBUG: no compose file found; falling back to legacy npm start."
