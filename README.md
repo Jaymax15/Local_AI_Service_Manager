@@ -12,17 +12,10 @@ Created by **Jason Michael Allison**.
 
 ![AI Server Manager main window](components/images/main-manager.png)
 
-### Services window
-
-![Services window](components/images/services-window.png)
-
 ### Service manager
 
 ![Service manager window](components/images/service-manager.png)
 
-### Model manager
-
-![Model manager window](components/images/model-manager.png)
 
 ## First-time setup
 
