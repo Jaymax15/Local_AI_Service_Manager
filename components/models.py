@@ -1,4 +1,4 @@
-# Version: 1.5
+# Version: 1.6
 """Ollama model manager and curated model catalog.
 
 V75 keeps the model catalog into components/models.txt so GitHub can update the
@@ -44,9 +44,10 @@ def _quote_sh(value):
 def _ollama_portable_command(extra_command=""):
     """Return a WSL-safe command that repairs Ollama's portable model path, then runs extra_command.
 
-    V88 uses a base64-encoded shell script instead of injecting a long nested bash
-    prefix directly into `bash -lc`. The previous inline form could be mangled by
-    quoting and could fail with errors such as `syntax error near unexpected token 2`.
+    V89 avoids reading /proc/<pid>/environ because the GUI sudo whitelist does not
+    allow sudo cat/tr for arbitrary /proc files. Instead it repairs the systemd
+    override, daemon-reloads, restarts/starts Ollama when needed, and verifies the
+    active systemd Environment property points at the portable model folder.
     """
     ai_dir = _to_wsl_path(Path(__file__).resolve().parent.parent).rstrip('/')
     base = f"{ai_dir}/ollama"
@@ -75,26 +76,43 @@ sudo -n install -m 0644 /tmp/ai-manager-models-ollama-override.conf /etc/systemd
 rm -f /tmp/ai-manager-models-ollama-override.conf
 sudo -n systemctl daemon-reload >/dev/null 2>&1 || true
 
-check_ollama_env() {{
-  pid=$(pgrep -x ollama | head -1 || true)
-  [ -n "$pid" ] || return 1
-  live_env=$(sudo -n cat "/proc/$pid/environ" 2>/dev/null | tr '\0' '\n' || true)
-  printf '%s\n' "$live_env" | grep -F "OLLAMA_MODELS=$OLLAMA_MODEL_DIR" >/dev/null 2>&1
+service_env_matches() {{
+  env_line=$(systemctl show ollama --property=Environment --value 2>/dev/null || true)
+  printf '%s\n' "$env_line" | grep -F "OLLAMA_MODELS=$OLLAMA_MODEL_DIR" >/dev/null 2>&1
 }}
 
-if ! check_ollama_env; then
+api_ready() {{
+  curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1
+}}
+
+if ! service_env_matches; then
+  echo "[MODELS] Repairing Ollama model path to $OLLAMA_MODEL_DIR"
   sudo -n systemctl stop ollama >/dev/null 2>&1 || true
-  sudo -n systemctl start ollama >/dev/null 2>&1 || true
 fi
 
-for _i in $(seq 1 30); do
-  curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break
+# Restart whenever the service is inactive, or after an override repair, so pulls
+# use the portable folder immediately instead of an old running environment.
+if ! systemctl is-active --quiet ollama 2>/dev/null || ! api_ready; then
+  sudo -n systemctl start ollama >/dev/null 2>&1 || true
+else
+  # A quick restart is safer for Model Manager actions because it guarantees the
+  # latest override is live before list/pull/remove runs.
+  sudo -n systemctl restart ollama >/dev/null 2>&1 || true
+fi
+
+for _i in $(seq 1 40); do
+  api_ready && break
   sleep 1
 done
 
-if ! check_ollama_env; then
-  echo 'ERROR[MODELS-PATH-001]: Ollama is not using portable model folder.'
+if ! service_env_matches; then
+  echo "ERROR[MODELS-PATH-001]: Ollama systemd environment is not using portable model folder: $OLLAMA_MODEL_DIR"
   exit 86
+fi
+
+if ! api_ready; then
+  echo 'ERROR[MODELS-PATH-002]: Ollama API did not become ready after model-path repair.'
+  exit 87
 fi
 
 {extra_command}
