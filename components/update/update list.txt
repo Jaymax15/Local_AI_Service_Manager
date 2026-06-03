@@ -1,0 +1,25 @@
+# Version: 1.3
+# AI Server Manager update list
+# Format: path | version | mode | description
+# mode update = download when missing/newer; local = preserve user file
+
+ai_server_manager.py | 1.1 | update | 
+components/__init__.py | 1.1 | update | 
+components/core/__init__.py | 1.1 | update | 
+components/core/components.py | 1.2 | update | 
+components/core/errorhandler.py | 1.1 | update | 
+components/core/paths.py | 1.2 | update | 
+components/core/processorhandler.py | 1.2 | update | 
+components/core/services.py | 1.1 | update | 
+components/ui/__init__.py | 1.1 | update | 
+components/ui/settings.py | 1.1 | update | 
+components/ui/models.py | 1.6 | update | 
+components/ui/uihelpers.py | 1.1 | update | 
+components/install/__init__.py | 1.1 | update | 
+components/install/installer.py | 1.2 | update | 
+components/install/sudo.py | 1.1 | update | 
+components/update/__init__.py | 1.1 | update | 
+components/update/updateutil.py | 1.2 | update | 
+components/update/update list.txt | 1.2 | update | 
+components/data/models.txt | 1.1 | update | 
+components/data/settings.txt | 1.1 | local | Local user settings; preserve
