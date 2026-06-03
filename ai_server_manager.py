@@ -9,12 +9,13 @@ import ctypes
 import sys
 import os
 
-from components import settings as settings_window
-from components import services as services_window
-from components import components as service_components
-from components import errorhandler
-from components import uihelpers
-from components import processorhandler
+from components.ui import settings as settings_window
+from components.core import services as services_window
+from components.core import components as service_components
+from components.core import errorhandler
+from components.ui import uihelpers
+from components.core import processorhandler
+from components.core import paths
 import re
 import traceback
 import shlex
@@ -26,6 +27,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # =====================================================
 # CONFIG
 # =====================================================
+
+# Create portable runtime folders on startup. These are not included in the zip.
+try:
+    paths.ensure_runtime_folders()
+except Exception:
+    pass
 
 AI_DIR = service_components.AI_DIR
 SILLY_DIR = service_components.SILLY_DIR
@@ -280,7 +287,7 @@ npm run start
 class AIManager:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Server Manager V84")
+        self.root.title("AI Server Manager V91")
         self.fixed_width = 1460
         self.fixed_height = 970
         self._enforcing_fixed_size = False
@@ -448,7 +455,7 @@ class AIManager:
         when Docker is missing so the loading screen does not hang.
         """
         try:
-            from components import installer as installer_window
+            from components.install import installer as installer_window
             versions = {}
             for item in getattr(installer_window, "SERVICE_CATALOG", []):
                 key = item.get("key")
@@ -1027,7 +1034,7 @@ class AIManager:
         main manager logic every time.
         """
         try:
-            from components import sudo as sudo_helper
+            from components.install import sudo as sudo_helper
             return sudo_helper.install_sudo_permissions(self, sudo_password, on_status)
         except Exception as e:
             self.write(f"[SETTINGS] Sudo helper error: {e}", "error")
