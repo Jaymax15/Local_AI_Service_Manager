@@ -13,7 +13,7 @@ components/core/processorhandler.py | 1.2 | update |
 components/core/services.py | 1.1 | update | 
 components/ui/__init__.py | 1.1 | update | 
 components/ui/settings.py | 1.1 | update | 
-components/ui/models.py | 1.6 | update | 
+components/ui/models.py | 1.7 | update | 
 components/ui/uihelpers.py | 1.1 | update | 
 components/install/__init__.py | 1.1 | update | 
 components/install/installer.py | 1.2 | update | 
