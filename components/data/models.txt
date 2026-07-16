@@ -1,4 +1,4 @@
-# Version: 1.2
+# Version: 1.7
 # AI Server Manager model list
 # Format: category|ollama_name|display_label|size_or_note
 # Categories currently used by the UI: Assistant, Roleplay, Vision
