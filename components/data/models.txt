@@ -1,4 +1,4 @@
-# Version: 1.1
+# Version: 1.2
 # AI Server Manager model list
 # Format: category|ollama_name|display_label|size_or_note
 # Categories currently used by the UI: Assistant, Roleplay, Vision
@@ -28,6 +28,34 @@ qwen2.5-coder:7b|Qwen2.5 Coder 7B - coding|7B
 qwen2.5-coder:14b|Qwen2.5 Coder 14B - larger coding|14B
 starcoder2:3b|StarCoder2 3B - small coding|3B
 starcoder2:7b|StarCoder2 7B - balanced coding|7B
+gpt-oss:20b|GPT-OSS 20B - flagship reasoning assistant|20B
+gpt-oss:120b|GPT-OSS 120B - maximum quality/reasoning|120B
+qwen3:0.6b|Qwen 3 0.6B - ultra tiny assistant|0.6B
+qwen3:1.7b|Qwen 3 1.7B - lightweight assistant|1.7B
+qwen3:4b|Qwen 3 4B - compact assistant|4B
+qwen3:8b|Qwen 3 8B - balanced assistant|8B
+qwen3:14b|Qwen 3 14B - advanced assistant|14B
+qwen3:30b|Qwen 3 30B - premium assistant|30B
+qwen3:32b|Qwen 3 32B - premium reasoning|32B
+deepseek-r1:32b|DeepSeek R1 32B - advanced reasoning|32B
+deepseek-r1:70b|DeepSeek R1 70B - flagship reasoning|70B
+deepseek-v3:latest|DeepSeek V3 - large assistant|latest
+mistral-small:24b|Mistral Small 24B - high quality assistant|24B
+mistral-large:latest|Mistral Large - flagship assistant|latest
+ministral:3b|Ministral 3B - lightweight assistant|3B
+ministral:8b|Ministral 8B - balanced assistant|8B
+command-r:35b|Command R 35B - retrieval assistant|35B
+command-r-plus:104b|Command R+ - enterprise assistant|104B
+granite3.3:2b|Granite 3.3 2B - tiny assistant|2B
+granite3.3:8b|Granite 3.3 8B - balanced assistant|8B
+granite3.3:30b|Granite 3.3 30B - enterprise assistant|30B
+exaone3.5:2.4b|EXAONE 3.5 2.4B - lightweight assistant|2.4B
+exaone3.5:7.8b|EXAONE 3.5 7.8B - balanced assistant|7.8B
+exaone3.5:32b|EXAONE 3.5 32B - premium assistant|32B
+smollm2:135m|SmolLM2 135M - extremely small assistant|135M
+smollm2:360m|SmolLM2 360M - tiny assistant|360M
+smollm2:1.7b|SmolLM2 1.7B - compact assistant|1.7B
+tinyllama:1.1b|TinyLlama 1.1B - ultra lightweight|1.1B
 
 [Roleplay]
 dolphin-mistral:7b|Dolphin Mistral 7B - chat/roleplay|7B
@@ -38,6 +66,26 @@ nous-hermes2:10.7b|Nous Hermes 2 10.7B - writing/roleplay|10.7B
 wizard-vicuna-uncensored:7b|Wizard Vicuna 7B - chat/roleplay|7B
 llama2-uncensored:7b|Llama 2 Uncensored 7B - roleplay/chat|7B
 mistral-nemo:12b|Mistral Nemo 12B - writing/chat|12B
+dolphin-phi:2.7b|Dolphin Phi 2.7B - lightweight roleplay|2.7B
+dolphin-phi:latest|Dolphin Phi - compact chat model|latest
+dolphin3:8b|Dolphin 3 8B - modern roleplay model|8B
+dolphin3:24b|Dolphin 3 24B - premium roleplay model|24B
+mythomax:13b|MythoMax 13B - popular storytelling model|13B
+mythalion:13b|Mythalion 13B - fantasy roleplay|13B
+psyfighter2:13b|Psyfighter 2 13B - creative writing|13B
+xwinlm:13b|XwinLM 13B - conversational model|13B
+airoboros:7b|Airoboros 7B - uncensored assistant|7B
+airoboros:13b|Airoboros 13B - advanced chat|13B
+samantha-mistral:7b|Samantha Mistral - empathetic chat|7B
+zephyr:7b|Zephyr 7B - instruction tuned chat|7B
+zephyr:141b|Zephyr 141B - very large chat model|141B
+openhermes:2.5|OpenHermes 2.5 - assistant/roleplay|7B
+openhermes:latest|OpenHermes - general chat model|latest
+solar:10.7b|SOLAR 10.7B - conversational assistant|10.7B
+vicuna:7b|Vicuna 7B - classic chat model|7B
+vicuna:13b|Vicuna 13B - larger chat model|13B
+stablelm2:1.6b|StableLM 2 1.6B - lightweight chat|1.6B
+stablelm2:12b|StableLM 2 12B - balanced chat|12B
 
 [Vision]
 llava:7b|LLaVA 7B - image understanding|7B
@@ -47,3 +95,23 @@ llava-llama3:8b|LLaVA Llama 3 8B - image chat|8B
 bakllava:7b|BakLLaVA 7B - image chat|7B
 moondream:latest|Moondream - small vision model|latest
 minicpm-v:8b|MiniCPM-V 8B - compact vision model|8B
+llama3.2-vision:11b|Llama 3.2 Vision 11B - multimodal assistant|11B
+llama3.2-vision:90b|Llama 3.2 Vision 90B - flagship multimodal|90B
+qwen2.5vl:3b|Qwen 2.5 VL 3B - lightweight vision|3B
+qwen2.5vl:7b|Qwen 2.5 VL 7B - balanced vision|7B
+qwen2.5vl:32b|Qwen 2.5 VL 32B - premium vision|32B
+minicpm-v:2b|MiniCPM-V 2B - tiny vision model|2B
+minicpm-v:4b|MiniCPM-V 4B - compact vision model|4B
+minicpm-v:26b|MiniCPM-V 26B - advanced vision model|26B
+phi4-multimodal:latest|Phi-4 Multimodal - text, image, audio|latest
+granite3.2-vision:2b|Granite Vision 2B - lightweight|2B
+granite3.2-vision:8b|Granite Vision 8B - balanced|8B
+ovis:2b|Ovis 2B - tiny multimodal model|2B
+ovis:8b|Ovis 8B - balanced multimodal model|8B
+ovis:34b|Ovis 34B - large multimodal model|34B
+internvl2:2b|InternVL2 2B - lightweight vision|2B
+internvl2:8b|InternVL2 8B - balanced vision|8B
+internvl2:26b|InternVL2 26B - premium vision|26B
+cogvlm2:19b|CogVLM2 19B - advanced image understanding|19B
+mantis:8b|Mantis 8B - multimodal assistant|8B
+mantis:34b|Mantis 34B - premium multimodal|34B
